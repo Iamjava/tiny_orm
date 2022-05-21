@@ -11,3 +11,4 @@ sqlx = { version = "0.5", features = [ "runtime-async-std-native-tls","sqlite" ]
 async-std = { version = "1", features = [ "attributes" ] }
 dotenv = "0.15.0"
 orm = {path="./orm"}
+lazy_static = "1.4.0"

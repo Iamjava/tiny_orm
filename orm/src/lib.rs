@@ -1,19 +1,20 @@
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate core;
+use syn::parse::Parser;
 
 use std::string::String;
 use proc_macro::{TokenStream};
 use std::any::Any;
 use std::fmt::format;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{Item, Fields, Type, Ident};
-
+use syn::__private::TokenStream2;
 
 
 #[proc_macro_derive(ToTable)]
 pub fn hello_macro_derive(input: TokenStream)->TokenStream{
-    let item: syn::ItemStruct = syn::parse(input.clone()).expect("failed to parse input");
+    let mut item: syn::ItemStruct = syn::parse( format!("\n #[derive(sqlx::FromRow)] \n {}", input.clone().to_string()).parse().unwrap()).expect("failed to parse input");
     let vars = get_names_and_types(&item);
     let create_stmt = generate_create_stmt(vars.clone()); //TODO make vars a Reference
     let name = &item.ident;
@@ -22,22 +23,41 @@ pub fn hello_macro_derive(input: TokenStream)->TokenStream{
 
     let gen = quote!{
         impl ToTable for #name {
-            fn table_init()->String{
+            fn table_init_stmt()->String{
                 format!("CREATE TABLE IF NOT EXISTS {} ({});",stringify!(#name),#create_stmt)
             }
 
-            fn insert(&self)->String{
+            fn init(){
+                 async_std::task::block_on(async {
+                  sqlx::query(&#name::table_init_stmt()).fetch_all(&mut *CONNECTION.lock().unwrap()).await.unwrap();
+                 });
+            }
+
+            fn delete_all(){
+                use async_std::task;
+                task::block_on(async {
+                  sqlx::query(&format!("DELETE FROM {}",stringify!(#name))).fetch_all(&mut *CONNECTION.lock().unwrap()).await.unwrap();
+                 });
+            }
+
+            fn insert_stmt(&self)->String{
               //println!("{}",#insert_stmt);
                #sin
             }
 
-           fn get_all<E>(con: &mut E)->Vec<#name> where
-                 Self:Sized,
-                 E: 'e + Executor<'c, Database = SqliteConnection>{
-                //async{
-               //   return sqlx::query_as::<_, Person>("SELECT * FROM Person").fetch_all(&mut con).await?;
-                //}
-                vec![]
+
+            fn insert(&self){
+                use async_std::task;
+                task::block_on(async {
+                  sqlx::query(&self.insert_stmt()).fetch_all(&mut *CONNECTION.lock().unwrap()).await.unwrap();
+                 });
+            }
+
+            fn get_all() -> Vec<#name> {
+                use async_std::task;
+                return task::block_on(async {
+                  sqlx::query_as::<_, #name>("SELECT * FROM Person").fetch_all(&mut *CONNECTION.lock().unwrap()).await.unwrap()
+                 });
             }
 
         }
@@ -83,13 +103,19 @@ fn impl_hello(ast: &syn::DeriveInput)->TokenStream{
     gen.into()
 }
 
+
+
 fn get_names_and_types(struct_: &syn::ItemStruct) -> Vec<(String, String)> {
+    let connection_name = "DATA";
     match struct_.fields {
         // A field can only be named "bees" if it has a name, so we'll
         // match those fields and ignore the rest.
         Fields::Named(ref fields) => {
+
             // Unwrap the field names because we know these are named fields.
-            let fields_typed = fields.named.iter().map(
+            let fields_typed = fields.named.iter()
+               // .filter(|field| field.ident.as_ref().unwrap() != connection_name)
+                .map(
                 |field|(
                     field.ident.as_ref().unwrap().to_string(),
                     {let t = &field.ty;  TokenStream::from(quote! {#t}).to_string()}

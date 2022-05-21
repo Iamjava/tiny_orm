@@ -1,22 +1,52 @@
 use std::borrow::BorrowMut;
+use std::future::Future;
 use std::ops::DerefMut;
 use std::str::FromStr;
 use async_std::stream::IntoStream;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{Connection, ConnectOptions, Database, Executor, SqliteConnection};
 use orm::ToTable;
-
+use std::collections::HashMap;
+use std::sync::Mutex;
+use sqlx::migrate::Migrate;
 //use rusqlite::{params, Connection, Result};
 
-pub trait ToTable {
-    fn table_init()->String;
-    fn insert(&self)->String;
-    fn get_all<'e, 'c: 'e, E>( executor: E)->Vec<Self>
-        where
-        Self:Sized,
-        E: 'e + Executor<'c, Database = SqliteConnection>;
+macro_rules! setup_all {
+    // `()` indicates that the macro takes no argument.
+    () => {
+      pub trait ToTable {
+    fn table_init_stmt() ->String;
+    fn insert_stmt(&self)->String;
+    fn delete_all();
 
+    fn init();
+    fn get_all()->Vec<Self> where  Self:Sized;
+    fn insert(&self);
+    }
+
+
+        lazy_static::lazy_static! {
+    static ref CONNECTION: Mutex<SqliteConnection> = {
+       let database_file = "db.sqlite";
+        let database_url = format!("sqlite://{}", database_file);
+         let mut conn = async_std::task::block_on(async {
+          SqliteConnectOptions::from_str(&database_url).unwrap().create_if_missing(true).connect().await.unwrap()
+            });
+        dbg!(Mutex::new(conn))
+    };
 }
+
+    };
+}
+
+setup_all!();
+
+#[derive(Debug, ToTable)]
+#[derive(sqlx::FromRow)]
+struct Pear {
+    id: i32,
+}
+
 
 
 #[derive(Debug, ToTable)]
@@ -28,40 +58,41 @@ struct Person {
 }
 
 
-fn get_all(con: &mut sqlx::SqliteConnection)->Vec<Person> {
-//async{
-//   return sqlx::query_as::<_, Person>("SELECT * FROM Person").fetch_all(&mut con).await?;
-//}
-return vec![]
-}
-
-
 #[async_std::main]
 async fn main()->Result<(),sqlx::Error> {
-    use sqlx::Connection;
     let database_file = "db.sqlite";
     let database_url = format!("sqlite://{}", database_file);
     let mut conn = SqliteConnectOptions::from_str(&database_url)?
         .create_if_missing(true).connect().await?;
-    let init = dbg!(Person::table_init());
-    let a = sqlx::query(&init).fetch_all(&mut conn).await?;
+
+
+    //let init = dbg!(Person::table_init_stmt());
+    //let mut c =  *CONNECTION.lock().unwrap();
+
+    //sqlx::query(&init).fetch_all(&mut *CONNECTION.lock().unwrap()).await?;
+
+
 
     let p = Person {
-        id: 10,
-        id2: 11,
-        name: "JAn".to_string(),
+        id: 111,
+        id2: 111,
+        name: "JAnnn".to_string(),
     };
-    let ins = dbg!(p.insert());
-    println!("{}", p.insert());
-    sqlx::query(&ins).fetch_all(&mut conn).await?;
-    let mut stream = sqlx::query_as::<_, Person>("SELECT * FROM Person").fetch_all(&mut conn).await?;
-    let m = sqlx::query("DELETE FROM Person").fetch_all(&mut conn).await?;
-    println!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa {:?}", stream);
-    println!("OK");
+    let p2 = Person {
+        id: 11,
+        id2: 12,
+        name: "Jaaaan".to_string(),
+    };
+
+    println!("{}", p.insert_stmt());
+    p.insert();
+    p2.insert();
+    Person::delete_all();
+    dbg!(Person::get_all());
     Ok(())
 }
 pub fn test_table() {
-    println!("{}", Person::table_init());
+    println!("{}", Pear::table_init_stmt());
 }
 pub fn test_insert() {
     let p = Person {
@@ -69,7 +100,7 @@ pub fn test_insert() {
         id2: 11,
         name: "JAn".to_string(),
     };
-    println!("{}", p.insert());
+    println!("{}", p.insert_stmt());
 }
 #[cfg(test)]
 mod tests {
@@ -84,7 +115,7 @@ mod tests {
     #[test]
     fn main_works2(){ match main() {
         Err(a)=> print!("{:?}",a),
-        _ => print!("OKII")
+        _ => print!("ALL WORKED")
     } }
 
     #[test]
