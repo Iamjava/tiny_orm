@@ -1,19 +1,14 @@
 extern crate core;
 extern crate proc_macro;
 extern crate proc_macro2;
-use syn::parse::Parser;
-
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
-use std::any::Any;
-use std::fmt::format;
+use quote::{quote};
 use std::string::String;
-use syn::__private::TokenStream2;
-use syn::{Fields, Ident, Item, Type};
+use syn::{Fields, Ident,};
 
 #[proc_macro_derive(ToTable)]
 pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
-    let mut item: syn::ItemStruct = syn::parse(
+    let  item: syn::ItemStruct = syn::parse(
         format!(
             "\n #[derive(sqlx::FromRow)] \n {}",
             input.clone().to_string()
@@ -74,7 +69,7 @@ pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
 
 fn generate_create_stmt(vars: Vec<(String, String)>) -> String {
     vars.into_iter()
-        .map(|(name, sqlType)| format!("{name} {sqlType}"))
+        .map(|(name, sql_type)| format!("{name} {sql_type}"))
         .collect::<Vec<String>>()
         .join(",")
 }
@@ -96,30 +91,17 @@ fn generate_insert_stmt(vars: Vec<(String, String)>, name: &Ident) -> String {
     return s;
 }
 
-fn to_sql_types(inputType: String, name: &str) -> String {
-    match inputType.as_str() {
+fn to_sql_types(input_type: String, _name: &str) -> String {
+    match input_type.as_str() {
         "String" => "varchar(1024)".to_string(),
         "i8" | "i32" | "i64" | "i128" => "INT".to_string(),
 
-        _ => panic!("UNKNOWN TYPE, Cannot Convert to SQL type {}", inputType),
+        _ => panic!("UNKNOWN TYPE, Cannot Convert to SQL type {}", input_type),
     }
 }
 
-fn impl_hello(ast: &syn::DeriveInput) -> TokenStream {
-    println!("invoked");
-    let name = &ast.ident;
-    let gen = quote! {
-        impl ToTable for #name {
-            fn table_init(){
-                println!("CREATE TABLE IF NOT EXISTS {} ",stringify!(#name));
-            }
-        }
-    };
-    gen.into()
-}
 
 fn get_names_and_types(struct_: &syn::ItemStruct) -> Vec<(String, String)> {
-    let connection_name = "DATA";
     match struct_.fields {
         // A field can only be named "bees" if it has a name, so we'll
         // match those fields and ignore the rest.
@@ -137,7 +119,7 @@ fn get_names_and_types(struct_: &syn::ItemStruct) -> Vec<(String, String)> {
                 });
             //let a = &fields_typed.collect::<Vec<(String,String)>>()[1];
             fields_typed
-                .map(|(name, inputType)| (name.clone(), to_sql_types(inputType, &name)))
+                .map(|(name, input_type)| (name.clone(), to_sql_types(input_type, &name)))
                 .collect()
         }
         // Ignore unit structs or anonymous fields.

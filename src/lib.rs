@@ -1,35 +1,25 @@
-use async_std::stream::IntoStream;
-use orm::ToTable;
-use orm_setup;
-use sqlx::migrate::Migrate;
+
 use sqlx::sqlite::SqliteConnectOptions;
-use sqlx::{ConnectOptions, Connection, Database, Executor, SqliteConnection};
-use std::borrow::BorrowMut;
-use std::collections::HashMap;
-use std::future::Future;
-use std::ops::DerefMut;
+use sqlx::{ConnectOptions, SqliteConnection};
 use std::str::FromStr;
 use std::sync::Mutex;
 //use rusqlite::{params, Connection, Result};
 
 orm_setup::setup_all!(sqlite, file "db.sqlite");
 
-#[derive(Debug, ToTable, sqlx::FromRow)]
+#[derive(Debug, orm::ToTable, sqlx::FromRow)]
 struct Pear {
     id: i32,
 }
 
-#[derive(Debug, ToTable, sqlx::FromRow)]
+#[derive(Debug, orm::ToTable, sqlx::FromRow)]
 struct Person {
     id: i32,
     id2: i32,
     name: String,
 }
 
-
 fn main() -> Result<(), sqlx::Error> {
-
-
     //let init = dbg!(Person::table_init_stmt());
     //let mut c =  *CONNECTION.lock().unwrap();
 
@@ -50,7 +40,7 @@ pub fn test_insert() {
 #[cfg(test)]
 mod tests {
 
-    use crate::{main, test_insert, test_table, Person};
+    use crate::{main, test_insert, test_table};
 
     #[test]
     fn table_works() {

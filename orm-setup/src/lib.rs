@@ -1,7 +1,6 @@
 extern crate core;
 extern crate proc_macro;
 extern crate proc_macro2;
-use syn::parse::Parser;
 extern crate sqlx;
 
 #[macro_export]
