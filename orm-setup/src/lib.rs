@@ -14,7 +14,7 @@ macro_rules! setup_all {
 
     fn init();
     fn get_all()->Vec<Self> where  Self:Sized;
-    fn insert(&self);
+    fn save(&self);
     }
 
 
@@ -25,7 +25,7 @@ macro_rules! setup_all {
          let mut conn = async_std::task::block_on(async {
           SqliteConnectOptions::from_str(&database_url).unwrap().create_if_missing(true).connect().await.unwrap()
             });
-        dbg!(Mutex::new(conn))
+        Mutex::new(conn)
     };
 }
 

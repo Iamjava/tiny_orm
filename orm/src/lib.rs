@@ -48,7 +48,7 @@ pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
             }
 
 
-            fn insert(&self){
+            fn save(&self){
                 use async_std::task;
                 task::block_on(async {
                   sqlx::query(&self.insert_stmt()).fetch_all(&mut *CONNECTION.lock().unwrap()).await.unwrap();
