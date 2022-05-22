@@ -14,6 +14,7 @@ macro_rules! setup_all {
 
     fn init();
     fn get_all()->Vec<Self> where  Self:Sized;
+    fn get_all_filter(c:&str)->Vec<Self> where  Self:Sized;
     fn save(&self);
     }
 

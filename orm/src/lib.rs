@@ -58,7 +58,15 @@ pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
             fn get_all() -> Vec<#name> {
                 use async_std::task;
                 return task::block_on(async {
-                  sqlx::query_as::<_, #name>("SELECT * FROM Person").fetch_all(&mut *CONNECTION.lock().unwrap()).await.unwrap()
+                  sqlx::query_as::<_, #name>(&format!("SELECT * FROM {}",stringify!(#name))).fetch_all(&mut *CONNECTION.lock().unwrap()).await.unwrap()
+                 });
+            }
+            fn get_all_filter(filter: &str) -> Vec<#name> {
+                use async_std::task;
+                let f = format!("SELECT * FROM {} WHERE {}", stringify!(#name), filter);
+                println!("{}",f);
+                return task::block_on(async {
+                  sqlx::query_as::<_, #name>(&f).fetch_all(&mut *CONNECTION.lock().unwrap()).await.unwrap()
                  });
             }
 

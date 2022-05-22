@@ -18,14 +18,16 @@ struct Pear{
 }
 
 fn example(){
-    Pear::init();
+    Pear::init(); //Initalisiert die Tabelle Falls nicht Vorhanden
+    
     let pear = Pear{
         id: 1,
         age: 2,
         producer: "Lady Bird".to_string(),
     };
-    pear.save();
-    dbg!(Pear::get_all());// -> gibt p wieder zurück
+    
+    pear.save(); //Speichert in die Aktuelle Tabelle
+    dbg!(Pear::get_all());// -> gibt all p's in der Datenbank wieder zurück
 }
 
 ```
